@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal Case Converter</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #2c3e50);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 650px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            padding: 35px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: linear-gradient(90deg, #1a2a6c, #2c3e50);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.2rem;
+            color: #1a2a6c;
+            margin-bottom: 10px;
+            font-weight: 700;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .header h1::after {
+            content: '';
+            display: block;
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, #1a2a6c, #2c3e50);
+            margin: 10px auto 0;
+            border-radius: 2px;
+        }
+        
+        .header p {
+            color: #5a5a5a;
+            font-size: 1.05rem;
+            margin-top: 15px;
+        }
+        
+        .upload-section {
+            margin-bottom: 25px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+            border: 1px solid #eaeaea;
+        }
+        
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            padding-left: 5px;
+        }
+        
+        .section-title i {
+            margin-right: 12px;
+            color: #1a2a6c;
+            font-size: 1.1rem;
+            width: 32px;
+            height: 32px;
+            background: #e6e9ff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .upload-box {
+            border: 2px dashed #c2c8e0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafbff;
+            position: relative;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .upload-box:hover {
+            border-color: #1a2a6c;
+            background: #f0f3ff;
+        }
+        
+        .upload-box.drag-over {
+            border-color: #1a2a6c;
+            background: #e6e9ff;
+        }
+        
+        .upload-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .upload-icon {
+            font-size: 28px;
+            color: #1a2a6c;
+        }
+        
+        .upload-text {
+            font-size: 1.05rem;
+            color: #4a5568;
+            font-weight: 500;
+        }
+        
+        .file-info {
+            background: #e6e9ff;
+            border-radius: 8px;
+            padding: 12px 15px;
+            margin-top: 15px;
+            font-size: 0.95rem;
+            display: none;
+            text-align: left;
+            border-left: 4px solid #1a2a6c;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .file-info.active {
+            display: block;
+        }
+        
+        .file-name {
+            font-weight: 600;
+            color: #2c3e50;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 5px;
+        }
+        
+        .file-size {
+            color: #4a5568;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .file-size i {
+            color: #1a2a6c;
+        }
+        
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            margin: 25px 0;
+        }
+        
+        .convert-btn, .download-btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .convert-btn {
+            background: linear-gradient(135deg, #1a2a6c, #3a56c0);
+            color: white;
+        }
+        
+        .convert-btn:hover {
+            background: linear-gradient(135deg, #3a56c0, #1a2a6c);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        }
+        
+        .convert-btn:disabled {
+            background: #c2c8e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .download-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+        }
+        
+        .download-btn:hover {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        }
+        
+        .download-btn:disabled {
+            background: #c2e0d2;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 1rem;
+            min-height: 24px;
+            color: #2c3e50;
+            font-weight: 500;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f0f3ff;
+        }
+        
+        .progress-container {
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #1a2a6c, #3a56c0, #27ae60);
+            width: 0%;
+            transition: width 0.4s ease;
+            border-radius: 4px;
+        }
+        
+        .preview {
+            background: #f8f9ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            border: 1px solid #e2e8f0;
+            white-space: pre-wrap;
+            color: #4a5568;
+            display: none;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        @media (max-width: 768px) {
+            .btn-container {
+                flex-direction: column;
+            }
+            
+            .container {
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header p {
+                font-size: 1rem;
+            }
+            
+            .upload-box {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-gavel"></i> Legal Case Converter</h1>
+            <p>Convert case files to structured text format with key legal sections</p>
+        </div>
+        
+        <div class="upload-section">
+            <div class="section-title">
+                <i class="fas fa-user-tie"></i>
+                Claimant Case File
+            </div>
+            <div class="upload-box" id="claimant-box">
+                <div class="upload-content">
+                    <i class="fas fa-file-upload upload-icon"></i>
+                    <span class="upload-text">Click or drag file to upload</span>
+                </div>
+                <div class="file-info" id="claimant-info">
+                    <p class="file-name" id="claimant-name"></p>
+                    <p class="file-size"><i class="fas fa-weight-hanging"></i> <span id="claimant-size"></span></p>
+                </div>
+            </div>
+            <input type="file" id="claimant-input" accept=".pdf,.doc,.docx,.json,.txt" hidden>
+        </div>
+        
+        <div class="upload-section">
+            <div class="section-title">
+                <i class="fas fa-balance-scale"></i>
+                Defendant Case File
+            </div>
+            <div class="upload-box" id="defendant-box">
+                <div class="upload-content">
+                    <i class="fas fa-file-upload upload-icon"></i>
+                    <span class="upload-text">Click or drag file to upload</span>
+                </div>
+                <div class="file-info" id="defendant-info">
+                    <p class="file-name" id="defendant-name"></p>
+                    <p class="file-size"><i class="fas fa-weight-hanging"></i> <span id="defendant-size"></span></p>
+                </div>
+            </div>
+            <input type="file" id="defendant-input" accept=".pdf,.doc,.docx,.json,.txt" hidden>
+        </div>
+        
+        <div class="progress-container" id="progress-container">
+            <div class="progress-bar" id="progress-bar"></div>
+        </div>
+        
+        <div class="status" id="status">Ready to convert files</div>
+        
+        <div class="btn-container">
+            <button class="convert-btn" id="convert-btn" disabled>
+                <i class="fas fa-cogs"></i>
+                Convert Case
+            </button>
+            
+            <button class="download-btn" id="download-btn" disabled>
+                <i class="fas fa-download"></i>
+                Download Result
+            </button>
+        </div>
+        
+        <div class="preview" id="preview"></div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const claimantBox = document.getElementById('claimant-box');
+        const defendantBox = document.getElementById('defendant-box');
+        const claimantInput = document.getElementById('claimant-input');
+        const defendantInput = document.getElementById('defendant-input');
+        const claimantInfo = document.getElementById('claimant-info');
+        const defendantInfo = document.getElementById('defendant-info');
+        const claimantName = document.getElementById('claimant-name');
+        const defendantName = document.getElementById('defendant-name');
+        const claimantSize = document.getElementById('claimant-size');
+        const defendantSize = document.getElementById('defendant-size');
+        const convertBtn = document.getElementById('convert-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const statusEl = document.getElementById('status');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const previewEl = document.getElementById('preview');
+        
+        // State
+        let claimantFile = null;
+        let defendantFile = null;
+        let convertedContent = '';
+        
+        // Set up drag and drop
+        function setupDragAndDrop(box, input, info, nameEl, sizeEl) {
+            // Click to open file dialog
+            box.addEventListener('click', () => input.click());
+            
+            // Drag and drop events
+            box.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                box.classList.add('drag-over');
+            });
+            
+            box.addEventListener('dragleave', () => {
+                box.classList.remove('drag-over');
+            });
+            
+            box.addEventListener('drop', (e) => {
+                e.preventDefault();
+                box.classList.remove('drag-over');
+                
+                if (e.dataTransfer.files.length) {
+                    input.files = e.dataTransfer.files;
+                    handleFileSelect(e, input, info, nameEl, sizeEl);
+                }
+            });
+            
+            // File input change
+            input.addEventListener('change', (e) => handleFileSelect(e, input, info, nameEl, sizeEl));
+        }
+        
+        // Handle file selection
+        function handleFileSelect(e, input, info, nameEl, sizeEl) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            // Check file type
+            const validTypes = ['application/pdf', 
+                               'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+                               'application/json', 
+                               'application/msword',
+                               'text/plain'];
+            
+            const ext = file.name.split('.').pop().toLowerCase();
+            const validExtensions = ['pdf', 'doc', 'docx', 'json', 'txt'];
+            
+            if (!validTypes.includes(file.type) && !validExtensions.includes(ext)) {
+                statusEl.textContent = 'Invalid file type. Please upload PDF, DOC, DOCX, JSON, or TXT files.';
+                statusEl.style.color = '#e74c3c';
+                return;
+            }
+            
+            // Check file size (10MB max)
+            if (file.size > 10 * 1024 * 1024) {
+                statusEl.textContent = 'File size exceeds 10MB limit. Please choose a smaller file.';
+                statusEl.style.color = '#e74c3c';
+                return;
+            }
+            
+            // Update UI
+            info.classList.add('active');
+            nameEl.textContent = file.name;
+            sizeEl.textContent = formatFileSize(file.size);
+            
+            // Store file reference
+            if (input.id === 'claimant-input') {
+                claimantFile = file;
+            } else {
+                defendantFile = file;
+            }
+            
+            // Enable convert button if both files are selected
+            updateConvertButtonState();
+            
+            statusEl.textContent = 'Files selected. Ready to convert.';
+            statusEl.style.color = '#2c3e50';
+        }
+        
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' bytes';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            else return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+        
+        // Update convert button state
+        function updateConvertButtonState() {
+            convertBtn.disabled = !(claimantFile && defendantFile);
+        }
+        
+        // Convert files
+        convertBtn.addEventListener('click', async () => {
+            if (!claimantFile || !defendantFile) return;
+            
+            try {
+                convertBtn.disabled = true;
+                progressContainer.style.display = 'block';
+                statusEl.textContent = 'Processing claimant file...';
+                progressBar.style.width = '25%';
+                
+                // Process claimant file
+                const claimantText = await convertFile(claimantFile);
+                
+                statusEl.textContent = 'Processing defendant file...';
+                progressBar.style.width = '60%';
+                
+                // Process defendant file
+                const defendantText = await convertFile(defendantFile);
+                
+                // Create structured text with required fields
+                statusEl.textContent = 'Creating structured format...';
+                progressBar.style.width = '90%';
+                
+                convertedContent = createStructuredText(claimantText, defendantText);
+                
+                // Show preview
+                previewEl.textContent = convertedContent;
+                previewEl.style.display = 'block';
+                
+                // Complete conversion
+                progressBar.style.width = '100%';
+                statusEl.textContent = 'Conversion completed successfully!';
+                statusEl.style.color = '#27ae60';
+                downloadBtn.disabled = false;
+                
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                    progressBar.style.width = '0%';
+                }, 1500);
+            } catch (error) {
+                statusEl.textContent = `Error: ${error.message}`;
+                statusEl.style.color = '#e74c3c';
+                progressContainer.style.display = 'none';
+                convertBtn.disabled = false;
+            }
+        });
+        
+        // Convert file to text
+        async function convertFile(file) {
+            const ext = file.name.split('.').pop().toLowerCase();
+            
+            if (file.type === 'application/pdf' || ext === 'pdf') {
+                return await convertPdf(file);
+            } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+                       file.type === 'application/msword' || 
+                       ext === 'docx' || ext === 'doc') {
+                return await convertDocx(file);
+            } else if (file.type === 'application/json' || ext === 'json') {
+                return convertJson(file);
+            } else if (file.type === 'text/plain' || ext === 'txt') {
+                return await convertTxt(file);
+            } else {
+                throw new Error('Unsupported file format');
+            }
+        }
+        
+        // Convert PDF to text
+        async function convertPdf(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async function(event) {
+                    try {
+                        const typedarray = new Uint8Array(event.target.result);
+                        
+                        // Initialize PDF.js
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+                        
+                        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                        let text = '';
+                        
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const content = await page.getTextContent();
+                            text += content.items.map(item => item.str).join(' ') + '\n\n';
+                        }
+                        
+                        resolve(text);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = error => reject(error);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        // Convert DOCX to text
+        async function convertDocx(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const arrayBuffer = event.target.result;
+                        
+                        mammoth.extractRawText({ arrayBuffer: arrayBuffer })
+                            .then(result => resolve(result.value))
+                            .catch(error => reject(error));
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = error => reject(error);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        // Convert JSON to text
+        function convertJson(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const json = JSON.parse(event.target.result);
+                        resolve(JSON.stringify(json, null, 2));
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = error => reject(error);
+                reader.readAsText(file);
+            });
+        }
+        
+        // Convert TXT to text
+        function convertTxt(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    resolve(event.target.result);
+                };
+                reader.onerror = error => reject(error);
+                reader.readAsText(file);
+            });
+        }
+        
+        // Create structured text with required fields
+        function createStructuredText(claimantText, defendantText) {
+            const timestamp = new Date().toLocaleString();
+            
+            return `Generated on: ${timestamp}
+
+=== CLAIMANT ARGUMENT ===
+${extractContent(claimantText) || '[No claimant argument found in document]'}
+
+=== DEFENDANT ARGUMENT ===
+${extractContent(defendantText) || '[No defendant argument found in document]'}
+
+=== CLAIMANT REASONING ===
+${extractReasoning(claimantText) || '[No claimant reasoning found in document]'}
+
+=== DEFENDANT REASONING ===
+${extractReasoning(defendantText) || '[No defendant reasoning found in document]'}`;
+        }
+        
+        // Extract content for arguments section
+        function extractContent(text) {
+            // This is a placeholder - in a real application you would use NLP or pattern matching
+            // For this demo, we'll just return the first 1000 characters
+            return text.substring(0, Math.min(1000, text.length));
+        }
+        
+        // Extract content for reasoning section
+        function extractReasoning(text) {
+            // This is a placeholder - in a real application you would use NLP or pattern matching
+            // For this demo, we'll return a relevant section if it exists
+            if (text.toLowerCase().includes("reason")) {
+                return "Reasoning identified in document:\n" + 
+                       text.substring(text.toLowerCase().indexOf("reason"), Math.min(text.length, text.toLowerCase().indexOf("reason") + 500));
+            }
+            return null;
+        }
+        
+        // Download converted file
+        downloadBtn.addEventListener('click', () => {
+            if (!convertedContent) return;
+            
+            const blob = new Blob([convertedContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'structured_legal_case.txt';
+            document.body.appendChild(a);
+            a.click();
+            
+            // Clean up
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        });
+        
+        // Initialize
+        setupDragAndDrop(claimantBox, claimantInput, claimantInfo, claimantName, claimantSize);
+        setupDragAndDrop(defendantBox, defendantInput, defendantInfo, defendantName, defendantSize);
+    </script>
+</body>
+</html>
